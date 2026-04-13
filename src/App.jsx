@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
 
 // ─── MediaPipe CDN ────────────────────────────────────────────────────────────
 const WASM_CDN  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm';
@@ -248,8 +252,8 @@ export default function App() {
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
   }
 
-  function handleGainChange(e) {
-    const val = parseFloat(e.target.value);
+  function handleGainChange(values) {
+    const val = values[0];
     setGainValue(val);
     gainValueRef.current = val;
     if (gainNodeRef.current) gainNodeRef.current.gain.value = val;
@@ -257,18 +261,20 @@ export default function App() {
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
   }
 
-  // ── Status colour ─────────────────────────────────────────────────────────
-  const badgeColor =
-    eyeStatus === 'Eyes Open'        ? '#4ade80' :
-    eyeStatus === 'Eyes Closed'      ? '#f87171' :
-    eyeStatus === 'No face detected' ? '#fb923c' :
-                                       '#facc15';
+  // ── Status badge colour ───────────────────────────────────────────────────
+  const badgeClass =
+    eyeStatus === 'Eyes Open'        ? 'bg-green-400 text-gray-950 border-green-400' :
+    eyeStatus === 'Eyes Closed'      ? 'bg-red-400 text-gray-950 border-red-400' :
+    eyeStatus === 'No face detected' ? 'bg-orange-400 text-gray-950 border-orange-400' :
+                                       'bg-yellow-400 text-gray-950 border-yellow-400';
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={s.page}>
-      <header style={s.header}>
-        <div style={s.logoRow}>
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center px-5 py-10 pb-20">
+
+      {/* ── Header ── */}
+      <header className="text-center mb-8">
+        <div className="flex items-center justify-center gap-3 mb-1">
           {/* Eye logomark */}
           <svg width="38" height="38" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <defs>
@@ -284,240 +290,101 @@ export default function App() {
             <circle cx="16" cy="16" r="2" fill="#090a0f"/>
             <circle cx="17.4" cy="14.6" r="0.9" fill="white" opacity="0.45"/>
           </svg>
-          <h1 style={s.title}>Sight Shift</h1>
+          <h1 className="text-5xl font-extrabold tracking-tighter bg-gradient-to-br from-violet-400 to-sky-400 bg-clip-text text-transparent py-2 pb-3 leading-none inline-block">
+            Sight Shift
+          </h1>
         </div>
-        <p style={s.subtitle}>Close your eyes to play · Open to pause</p>
+        <p className="text-sm text-muted-foreground mt-2">Close your eyes to play · Open to pause</p>
       </header>
 
-      {/* Status badge */}
-      <div style={{ ...s.badge, background: badgeColor }}>{eyeStatus}</div>
+      {/* ── Status badge ── */}
+      <Badge
+        variant="outline"
+        className={`px-6 py-2 text-base font-bold mb-8 transition-colors duration-300 ${badgeClass}`}
+      >
+        {eyeStatus}
+      </Badge>
 
-      {/* Loading notice */}
-      {!modelReady && <p style={s.notice}>Loading face detection model…</p>}
+      {/* ── Loading notice ── */}
+      {!modelReady && (
+        <p className="text-yellow-400 text-sm mb-4">Loading face detection model…</p>
+      )}
 
-      {/* ── Webcam ── */}
-      <section style={{ ...s.card, maxWidth: '700px' }}>
-        <span style={s.label}>Live Webcam</span>
-        <video ref={webcamRef} autoPlay muted playsInline style={s.webcam} />
-      </section>
+      {/* ── Webcam card ── */}
+      <Card className="w-full max-w-2xl mb-5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xs font-bold tracking-widest uppercase text-muted-foreground">
+            Live Webcam
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <video
+            ref={webcamRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full aspect-video object-cover rounded-lg bg-black block"
+          />
+        </CardContent>
+      </Card>
 
-      {/* ── Volume ── */}
-      <section style={s.card}>
-        <div style={s.volRow}>
-          <span style={s.label}>Volume</span>
-          <span style={s.volPct}>{Math.round(gainValue * 100)}%</span>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="10"
-          step="0.05"
-          value={gainValue}
-          onChange={handleGainChange}
-          style={s.slider}
-        />
-        <div style={s.meterTrack}>
-          <div ref={meterFillRef} style={s.meterFill} />
-        </div>
-        {gainValue > 3 && (
-          <p style={s.warnText}>⚠ High gain — protect your hearing</p>
-        )}
-      </section>
+      {/* ── Volume card ── */}
+      <Card className="w-full max-w-xl mb-5">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center w-full">
+            <CardTitle className="text-xs font-bold tracking-widest uppercase text-muted-foreground">
+              Volume
+            </CardTitle>
+            <span className="text-lg font-bold text-primary tabular-nums">
+              {Math.round(gainValue * 100)}%
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0 space-y-3">
+          <Slider
+            min={0}
+            max={10}
+            step={0.05}
+            value={[gainValue]}
+            onValueChange={handleGainChange}
+          />
+          <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+            <div ref={meterFillRef} className="h-full w-0 rounded-full bg-green-400" />
+          </div>
+          {gainValue > 3 && (
+            <p className="text-xs text-red-400">⚠ High gain — protect your hearing</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Hidden audio/video — always in DOM so ref is stable */}
-      <video ref={hiddenVideoRef} loop playsInline style={{ display: 'none' }} />
+      <video ref={hiddenVideoRef} loop playsInline className="hidden" />
 
-      {/* ── Upload (bottom) ── */}
-      <section style={s.card}>
-        <span style={s.label}>Audio / Video File</span>
-        <label style={s.fileBtn}>
-          {fileName ? `✓  ${fileName}` : 'Choose file'}
-          <input
-            type="file"
-            accept="video/*,audio/*"
-            onChange={handleFileChange}
-            style={s.fileInput}
-          />
-        </label>
-        {!fileName && <p style={s.hint}>MP4 · WebM · MP3 · AAC and more</p>}
-      </section>
+      {/* ── Upload card ── */}
+      <Card className="w-full max-w-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xs font-bold tracking-widest uppercase text-muted-foreground">
+            Audio / Video File
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 flex flex-col items-center gap-3">
+          <Button variant="default" size="lg" className="w-full relative overflow-hidden" asChild>
+            <label className="cursor-pointer truncate">
+              {fileName ? `✓  ${fileName}` : 'Choose file'}
+              <input
+                type="file"
+                accept="video/*,audio/*"
+                onChange={handleFileChange}
+                className="absolute opacity-0 w-0 h-0 pointer-events-none"
+              />
+            </label>
+          </Button>
+          {!fileName && (
+            <p className="text-xs text-muted-foreground">MP4 · WebM · MP3 · AAC and more</p>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-const s = {
-  page: {
-    minHeight: '100vh',
-    background: '#090a0f',
-    color: '#e2e2e6',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '2.5rem 1.25rem 5rem',
-    fontFamily: "system-ui, 'Segoe UI', Roboto, sans-serif",
-  },
-
-  header: {
-    textAlign: 'center',
-    marginBottom: '1.5rem',
-  },
-
-  logoRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.6rem',
-    marginBottom: '0.25rem',
-  },
-
-  title: {
-    fontSize: '2.8rem',
-    fontWeight: 800,
-    letterSpacing: '-0.05em',
-    // padding gives the gradient background room so ascenders/descenders aren't clipped
-    padding: '0.06em 0.12em',
-    margin: 0,
-    display: 'inline-block',
-    background: 'linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%)',
-    WebkitBackgroundClip: 'text',
-    backgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    color: 'transparent',
-  },
-
-  subtitle: {
-    fontSize: '0.9rem',
-    color: '#555',
-    margin: '0.4rem 0 0',
-  },
-
-  badge: {
-    padding: '0.45rem 1.8rem',
-    borderRadius: '999px',
-    fontWeight: 700,
-    fontSize: '1rem',
-    color: '#08090f',
-    marginBottom: '2rem',
-    transition: 'background 0.3s ease',
-    letterSpacing: '0.03em',
-  },
-
-  notice: {
-    color: '#facc15',
-    fontSize: '0.85rem',
-    marginBottom: '1rem',
-    margin: '0 0 1rem',
-  },
-
-  card: {
-    width: '100%',
-    maxWidth: '520px',
-    background: '#12131a',
-    border: '1px solid #1e1f2e',
-    borderRadius: '14px',
-    padding: '1.25rem 1.5rem',
-    marginBottom: '1.2rem',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '0.9rem',
-    boxSizing: 'border-box',
-  },
-
-  label: {
-    alignSelf: 'flex-start',
-    fontSize: '0.72rem',
-    fontWeight: 700,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    color: '#444',
-  },
-
-  webcam: {
-    width: '100%',
-    aspectRatio: '16 / 9',
-    objectFit: 'cover',
-    borderRadius: '10px',
-    background: '#000',
-    display: 'block',
-  },
-
-  volRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-  },
-
-  volPct: {
-    fontSize: '1.15rem',
-    fontWeight: 700,
-    color: '#a78bfa',
-    fontVariantNumeric: 'tabular-nums',
-  },
-
-  slider: {
-    width: '100%',
-    accentColor: '#a78bfa',
-    cursor: 'pointer',
-    height: '4px',
-  },
-
-  meterTrack: {
-    width: '100%',
-    height: '10px',
-    background: '#1a1b26',
-    borderRadius: '999px',
-    overflow: 'hidden',
-  },
-
-  meterFill: {
-    height: '100%',
-    width: '0%',
-    borderRadius: '999px',
-    backgroundColor: 'rgb(80,200,40)',
-    // intentionally no CSS transition — we update every RAF frame directly
-  },
-
-  warnText: {
-    margin: 0,
-    fontSize: '0.78rem',
-    color: '#f87171',
-    alignSelf: 'flex-start',
-  },
-
-  fileBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#4f46e5',
-    color: '#fff',
-    padding: '0.65rem 1.8rem',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '0.9rem',
-    fontWeight: 600,
-    letterSpacing: '0.01em',
-    userSelect: 'none',
-    maxWidth: '100%',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    position: 'relative',
-  },
-
-  fileInput: {
-    position: 'absolute',
-    opacity: 0,
-    width: 0,
-    height: 0,
-    pointerEvents: 'none',
-  },
-
-  hint: {
-    margin: 0,
-    color: '#2f303f',
-    fontSize: '0.8rem',
-  },
-};
